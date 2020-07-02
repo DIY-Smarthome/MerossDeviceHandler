@@ -55,39 +55,8 @@ async function test() {
     })    
     if(!key) throw new Error("Couldn't find key! Startup aborted!");
     setConfigKey("key",key);
-  }
-  //console.log(key);
-  //console.log(key.data.key);
-  const messageId = crypto.createHash('md5').update(generateRandomString(16)).digest("hex");
-  const timestamp = Math.round(new Date().getTime() / 1000);  //int(round(time.time()))
-  const signature = crypto.createHash('md5').update(messageId + key + timestamp).digest("hex");
-
-
-
-  response = await doRequest({
-    json: true,
-    method: "POST",
-    strictSSL: false,
-    url: `http://10.10.10.8/config`,
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: {
-      payload: {},
-      header: {
-        messageId: messageId,
-        method: "GET",
-        from: `http://10.10.10.8/config`,
-        namespace: "Appliance.System.All",
-        timestamp: timestamp,
-        sign: signature,
-        payloadVersion: 1
-      }
-    }
-  });
-  console.log(response);
-  console.log(response.payload);
-  console.log(JSON.stringify(response.payload));
+  }  
+  console.log(await getAllDevices());
 }
 var checkDone = false;
 fs.exists('./config/config.json',(exists)=>{
@@ -151,7 +120,38 @@ async function login(email, password){
   };
   let response = JSON.parse(await doRequest(options));
   console.log(response.data.key);
-return response.data.key;
+  return response.data.key;
+}
+
+async function getDeviceFromIP(ip){
+  
+  const messageId = crypto.createHash('md5').update(generateRandomString(16)).digest("hex");
+  const timestamp = Math.round(new Date().getTime() / 1000);  //int(round(time.time()))
+  const signature = crypto.createHash('md5').update(messageId + key + timestamp).digest("hex");
+  //TODO Cleanup
+  //TODO use generate function for request
+  //TODO Devicemap and custom data container
+  return await doRequest({
+    json: true,
+    method: "POST",
+    strictSSL: false,
+    url: `http://${ip}/config`,
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: {
+      payload: {},
+      header: {
+        messageId: messageId,
+        method: "GET",
+        from: `http://${ip}/config`,
+        namespace: "Appliance.System.All",
+        timestamp: timestamp,
+        sign: signature,
+        payloadVersion: 1
+      }
+    }
+  });
 }
 
 function generateForm(data){
