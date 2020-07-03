@@ -1,7 +1,8 @@
-import crypto from 'crypto';
-import fs from 'fs';
-import readline from 'readline';
-import request from 'request';
+
+const crypto = require('crypto');
+const request = require('request');
+const fs = require('fs');
+const readline = require('readline');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -13,8 +14,8 @@ const SECRET = '23x17ahWarFH6w29';
 const MEROSS_URL = 'https://iot.meross.com';
 const LOGIN_URL = MEROSS_URL + '/v1/Auth/Login';
 const DEV_LIST_URL = MEROSS_URL + '/v1/Device/devList';
-var config:any;
-function generateRandomString(length: number) {
+var config;
+function generateRandomString(length) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let nonce = '';
   while (nonce.length < length) {
@@ -23,14 +24,14 @@ function generateRandomString(length: number) {
   return nonce;
 }
 
-function encodeParams(parameters: any) {
+function encodeParams(parameters) {
   const jsonstring = JSON.stringify(parameters);
   return Buffer.from(jsonstring).toString('base64');
 }
 
-function doRequest(options: any): Promise<string> {
+function doRequest(options) {
   return new Promise(function (resolve, reject) {
-    request(options, function (error: any, res: any, body: any) {
+    request(options, function (error, res, body) {
       if (!error && res.statusCode == 200) {
         resolve(body);
       } else {
@@ -42,11 +43,11 @@ function doRequest(options: any): Promise<string> {
 
 async function test() {
   
-  let key:string = config["key"];
+  let key = config["key"];
   if(key){
     await new Promise((resolve)=>{
       rl.question("No Key in config file found, please enter Meross login credentials:\r\nEmail: ",(email)=>{
-        rl.question("Password: ", async (password)=>{
+        rl.question("Password: ", (password)=>{
           key = await login(email, password);
           resolve();
         })
@@ -55,12 +56,12 @@ async function test() {
     if(!key) throw new Error("Couldn't find key! Startup aborted!");
     setConfigKey("key",key);
   }  
-  //TODO console.log(await getAllDevices());
+  console.log(await getAllDevices());
 }
 var checkDone = false;
 fs.exists('./config/config.json',(exists)=>{
   if (exists){
-    fs.readFile('./config/config.json',(err, data:any)=>{
+    fs.readFile('./config/config.json',(err, data)=>{
       if(err)throw err;
       config=JSON.parse(data);
     })
@@ -89,7 +90,7 @@ fs.exists('./config/config.json',(exists)=>{
 
 fs.watchFile('./config/config.json',(curr,prev)=>{
   //TODO Log
-  fs.readFile('./config/config.json',(err, data:any)=>{
+  fs.readFile('./config/config.json',(err, data)=>{
     if(err)throw err;
     config=JSON.parse(data);
   })
@@ -102,7 +103,7 @@ new Promise(async (resolve,reject)=>{
   resolve();
 }).then(test);
 
-async function login(email:string, password:string){
+async function login(email, password){
   const headers = {
     "Authorization": "Basic ",
     "vender": "Meross",
@@ -122,11 +123,11 @@ async function login(email:string, password:string){
   return response.data.key;
 }
 
-async function getDeviceFromIP(ip:string){
+async function getDeviceFromIP(ip){
   
   const messageId = crypto.createHash('md5').update(generateRandomString(16)).digest("hex");
   const timestamp = Math.round(new Date().getTime() / 1000);  //int(round(time.time()))
-  const signature = crypto.createHash('md5').update(messageId + config["key"] + timestamp).digest("hex");
+  const signature = crypto.createHash('md5').update(messageId + key + timestamp).digest("hex");
   //TODO Cleanup
   //TODO use generate function for request
   //TODO Devicemap and custom data container
@@ -153,7 +154,7 @@ async function getDeviceFromIP(ip:string){
   });
 }
 
-function generateForm(data:any){
+function generateForm(data){
   const nonce = generateRandomString(16);
   const timestampMillis = Date.now();
   const encodedData = encodeParams(data);
@@ -170,14 +171,14 @@ function generateForm(data:any){
   };
 }
 
-function setConfigKey(key:string, value:any){
+function setConfigKey(key, value){
   config[key]=value;
   fs.writeFile('./config/config.json',JSON.stringify(config),(err)=>{
     if(err) throw err;
   })
 }
 
-async function sleep(ms:number) {
+async function sleep(ms) {
 	return new Promise(resolve => {
 		setTimeout(resolve, ms);
 	});
