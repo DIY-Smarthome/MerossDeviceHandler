@@ -2,8 +2,12 @@
   "name": "requesttester",
   "version": "1.0.0",
   "description": "Test",
-  "main": "requestTester.js",
+  "main": "dist/broker.js",
   "scripts": {
+    "prebuild": "tslint -c tslint.json -p tsconfig.json --fix",
+    "build": "tsc",
+    "prestart": "npm run build",
+    "start": "node .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -11,5 +15,9 @@
   "dependencies": {
     "crypto": "^1.0.1",
     "request": "^2.88.2"
+  },
+  "devDependencies": {
+    "@types/node": "^14.0.14",
+    "@types/request": "^2.48.5"
   }
 }
