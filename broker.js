@@ -3,9 +3,6 @@ const request = require('request');
 const fs = require('fs');
 const read = require('read');
 const mqtt = require('mqtt');
-const {
-  MqttClient
-} = require('mqtt');
 
 const SECRET = '23x17ahWarFH6w29';
 const MEROSS_URL = 'https://iot.meross.com';
@@ -102,18 +99,10 @@ new Promise(async (resolve, reject) => {
 }).then(test);
 
 async function login(email, password) {
-  const headers = {
-    "Authorization": "Basic " + (config.token || ''),
-    "vender": "Meross",
-    "AppVersion": "1.3.0",
-    "AppLanguage": "EN",
-    "User-Agent": "okhttp/3.6.0"
-  };
-
   const options = {
     url: LOGIN_URL,
     method: 'POST',
-    headers: headers,
+    headers: getAuthHeaders(),
     form: generateForm({
       email: email,
       password: password
@@ -124,28 +113,22 @@ async function login(email, password) {
 }
 
 async function getDeviceList() {
-  const headers = {
-    "Authorization": "Basic " + (config.token || ''),
-    "vender": "Meross",
-    "AppVersion": "1.3.0",
-    "AppLanguage": "EN",
-    "User-Agent": "okhttp/3.6.0"
-  };
-
-  const options = {
+  //Get Devlist to obtain UUIDs of Devices
+  let response = JSON.parse(await doRequest({
     url: DEV_LIST_URL,
     method: 'POST',
-    headers: headers,
+    headers: getAuthHeaders(),
     form: generateForm({})
-  };
-  let response = JSON.parse(await doRequest(options));
+  }));
+
+
   let innerIPs = [];
   let client;
   let responses = 0;
 
+  //Connect mqtt client
   const appId = crypto.createHash('md5').update('API' + response.data[0].uuid).digest("hex");
   const clientId = 'app:' + appId;
-  // Password is calculated as the MD5 of USERID concatenated with KEY
   const hashedPassword = crypto.createHash('md5').update(config["userid"] + config["key"]).digest("hex");
   client = mqtt.connect({
     'protocol': 'mqtts',
@@ -158,6 +141,8 @@ async function getDeviceList() {
     'keepalive': 30,
     'reconnectPeriod': 5000
   });
+
+  //Subscribe to events
   let clientResponseTopic = '/app/' + config.userid + '-' + appId + '/subscribe';
   client.on('connect', () => {
     client.subscribe('/app/' + config.userid + '/subscribe', (err) => {
@@ -173,11 +158,9 @@ async function getDeviceList() {
     });
   });
 
-
+  //Bind message eventlistener an receive Debuginfo
   client.on('message', (topic, message) => {
     if (!message) return;
-    // message is Buffer
-    //console.log(topic + ' <-- ' + message.toString());
     try {
       message = JSON.parse(message.toString());
     } catch (err) {
@@ -190,22 +173,7 @@ async function getDeviceList() {
   });
 
   for (let i = 0; i < response.data.length; i++) {
-    const messageId = crypto.createHash('md5').update(generateRandomString(16)).digest("hex");
-    const timestamp = Math.round(new Date().getTime() / 1000); //int(round(time.time()))
-    const signature = crypto.createHash('md5').update(messageId + config.key + timestamp).digest("hex");
-
-    let data = {
-      "header": {
-        "from": clientResponseTopic,
-        "messageId": messageId,
-        "method": "GET",
-        "namespace": "Appliance.System.Debug",
-        "payloadVersion": 1,
-        "sign": signature,
-        "timestamp": timestamp
-      },
-      "payload": {}
-    };
+    let data = generateBody("GET", clientResponseTopic, "Appliance.System.Debug", {})
     if (!response.data[i].uuid || response.data[i].onlineStatus === 2) {
       responses++;
       continue;
@@ -217,15 +185,9 @@ async function getDeviceList() {
   }
   client.end();
   return innerIPs;
-  //[ '192.168.2.162', '10.10.10.2', '10.10.10.4' ]
 }
 
-async function getDeviceFromIP(ip) {
-  const messageId = crypto.createHash('md5').update(generateRandomString(16)).digest("hex");
-  const timestamp = Math.round(new Date().getTime() / 1000); //int(round(time.time()))
-  const signature = crypto.createHash('md5').update(messageId + config["key"] + timestamp).digest("hex");
-  //TODO Cleanup
-  //TODO use generate function for request
+async function getSystemAllData(ip) {
   //TODO Devicemap and custom data container
   return await doRequest({
     json: true,
@@ -235,18 +197,7 @@ async function getDeviceFromIP(ip) {
     headers: {
       "Content-Type": "application/json"
     },
-    body: {
-      payload: {},
-      header: {
-        messageId: messageId,
-        method: "GET",
-        from: `http://${ip}/config`,
-        namespace: "Appliance.System.All",
-        timestamp: timestamp,
-        sign: signature,
-        payloadVersion: 1
-      }
-    }
+    body: generateBody("GET", `http://${ip}/config`, "Appliance.System.All", {})
   });
 }
 
@@ -265,6 +216,24 @@ function generateForm(data) {
     'timestamp': timestampMillis,
     'nonce': nonce
   };
+}
+
+function generateBody(method, from, namespace, payload) {
+  const messageId = crypto.createHash('md5').update(generateRandomString(16)).digest("hex");
+  const timestamp = Math.round(new Date().getTime() / 1000); //int(round(time.time()))
+  const signature = crypto.createHash('md5').update(messageId + config["key"] + timestamp).digest("hex");
+  return {
+    payload: payload,
+    header: {
+      messageId: messageId,
+      method: method,
+      from: from,
+      namespace: namespace,
+      timestamp: timestamp,
+      sign: signature,
+      payloadVersion: 1
+    }
+  }
 }
 
 function setConfigKey(key, value) {
@@ -292,4 +261,14 @@ function getFields(input, field) {
   for (var i = 0; i < input.length; i++)
     output.push(input[i][field]);
   return output;
+}
+
+function getAuthHeaders() {
+  return {
+    "Authorization": "Basic " + (config["token"] || ''),
+    "vender": "Meross",
+    "AppVersion": "1.3.0",
+    "AppLanguage": "EN",
+    "User-Agent": "okhttp/3.6.0"
+  };
 }
