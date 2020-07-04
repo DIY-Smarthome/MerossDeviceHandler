@@ -10,6 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "crypto": "^1.0.1",
+    "mqtt": "^4.1.0",
+    "read": "^1.0.7",
     "request": "^2.88.2"
   }
 }
