@@ -2,7 +2,7 @@
   "name": "requesttester",
   "version": "1.0.0",
   "description": "Test",
-  "main": "requestTester.js",
+  "main": "broker.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

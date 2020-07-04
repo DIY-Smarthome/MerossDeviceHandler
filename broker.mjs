@@ -1,45 +1,28 @@
-const crypto = require('crypto');
-const request = require('request');
-const fs = require('fs');
-const read = require('read');
-const mqtt = require('mqtt');
+import crypto from 'crypto';
+import fs from 'fs';
+import read from 'read';
+import mqtt from 'mqtt';
+import {
+  doRequest,
+  generateForm,
+  generateBody,
+  setConfigKey,
+  getConfigKey,
+  refreshConfig,
+  sleep,
+  isInArray,
+  getFields,
+  getAuthHeaders
+} from './util.mjs';
 
-const SECRET = '23x17ahWarFH6w29';
 const MEROSS_URL = 'https://iot.meross.com';
 const LOGIN_URL = MEROSS_URL + '/v1/Auth/Login';
 const DEV_LIST_URL = MEROSS_URL + '/v1/Device/devList';
-var config;
-
-function generateRandomString(length) {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let nonce = '';
-  while (nonce.length < length) {
-    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return nonce;
-}
-
-function encodeParams(parameters) {
-  const jsonstring = JSON.stringify(parameters);
-  return Buffer.from(jsonstring).toString('base64');
-}
-
-function doRequest(options) {
-  return new Promise(function (resolve, reject) {
-    request(options, function (error, res, body) {
-      if (!error && res.statusCode == 200) {
-        resolve(body);
-      } else {
-        reject(error);
-      }
-    });
-  });
-}
 
 async function test() {
-  let key = config["key"];
-  let token = config["token"];
-  let userid = config["userid"]
+  let key = getConfigKey("key");
+  let token = getConfigKey("token");
+  let userid = getConfigKey("userid");
   if (!key || !token || !userid) {
     await new Promise((resolve) => {
       read({
@@ -65,7 +48,7 @@ fs.exists('./config/config.json', (exists) => {
   if (exists) {
     fs.readFile('./config/config.json', (err, data) => {
       if (err) throw err;
-      config = JSON.parse(data);
+      refreshConfig(JSON.parse(data));
     })
     checkDone = true;
     return;
@@ -74,7 +57,7 @@ fs.exists('./config/config.json', (exists) => {
     if (existsDir) {
       fs.writeFile('./config/config.json', '{}', (err) => {
         if (err) throw err;
-        config = {};
+        refreshConfig({});
       });
       checkDone = true;
       return;
@@ -83,7 +66,7 @@ fs.exists('./config/config.json', (exists) => {
       if (err) throw err;
       fs.writeFile('./config/config.json', '{}', (err) => {
         if (err) throw err;
-        config = {};
+        refreshConfig({});
         checkDone = true;
       });
     })
@@ -129,13 +112,13 @@ async function getDeviceList() {
   //Connect mqtt client
   const appId = crypto.createHash('md5').update('API' + response.data[0].uuid).digest("hex");
   const clientId = 'app:' + appId;
-  const hashedPassword = crypto.createHash('md5').update(config["userid"] + config["key"]).digest("hex");
+  const hashedPassword = crypto.createHash('md5').update(getConfigKey("userid") + getConfigKey("key")).digest("hex");
   client = mqtt.connect({
     'protocol': 'mqtts',
     'host': "eu-iot.meross.com",
     'port': 2001,
     'clientId': clientId,
-    'username': config["userid"],
+    'username': getConfigKey("userid"),
     'password': hashedPassword,
     'rejectUnauthorized': true,
     'keepalive': 30,
@@ -143,9 +126,9 @@ async function getDeviceList() {
   });
 
   //Subscribe to events
-  let clientResponseTopic = '/app/' + config.userid + '-' + appId + '/subscribe';
+  let clientResponseTopic = '/app/' + getConfigKey("userid") + '-' + appId + '/subscribe';
   client.on('connect', () => {
-    client.subscribe('/app/' + config.userid + '/subscribe', (err) => {
+    client.subscribe('/app/' + getConfigKey("userid") + '/subscribe', (err) => {
       if (err) {
         throw err;
       }
@@ -199,76 +182,4 @@ async function getSystemAllData(ip) {
     },
     body: generateBody("GET", `http://${ip}/config`, "Appliance.System.All", {})
   });
-}
-
-function generateForm(data) {
-  const nonce = generateRandomString(16);
-  const timestampMillis = Date.now();
-  const encodedData = encodeParams(data);
-
-  // Generate the md5-hash (called signature)
-  const datatosign = SECRET + timestampMillis + nonce + encodedData;
-  const md5hash = crypto.createHash('md5').update(datatosign).digest("hex");
-
-  return {
-    'params': encodedData,
-    'sign': md5hash,
-    'timestamp': timestampMillis,
-    'nonce': nonce
-  };
-}
-
-function generateBody(method, from, namespace, payload) {
-  const messageId = crypto.createHash('md5').update(generateRandomString(16)).digest("hex");
-  const timestamp = Math.round(new Date().getTime() / 1000); //int(round(time.time()))
-  const signature = crypto.createHash('md5').update(messageId + config["key"] + timestamp).digest("hex");
-  return {
-    payload: payload,
-    header: {
-      messageId: messageId,
-      method: method,
-      from: from,
-      namespace: namespace,
-      timestamp: timestamp,
-      sign: signature,
-      payloadVersion: 1
-    }
-  }
-}
-
-function setConfigKey(key, value) {
-  config[key] = value;
-  fs.writeFile('./config/config.json', JSON.stringify(config), (err) => {
-    if (err) throw err;
-  })
-}
-
-async function sleep(ms) {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms);
-  });
-}
-
-function isInArray(needles, string) {
-  for (let i = 0; i < needles.length; i++) {
-    if (string.includes(needles[i])) return true;
-  }
-  return false;
-}
-
-function getFields(input, field) {
-  var output = [];
-  for (var i = 0; i < input.length; i++)
-    output.push(input[i][field]);
-  return output;
-}
-
-function getAuthHeaders() {
-  return {
-    "Authorization": "Basic " + (config["token"] || ''),
-    "vender": "Meross",
-    "AppVersion": "1.3.0",
-    "AppLanguage": "EN",
-    "User-Agent": "okhttp/3.6.0"
-  };
 }
