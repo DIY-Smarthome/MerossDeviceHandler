@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import fs from 'fs';
 import read from 'read';
 import mqtt from 'mqtt';
 import {
@@ -12,14 +11,21 @@ import {
   sleep,
   isInArray,
   getFields,
-  getAuthHeaders
+  getAuthHeaders,
+  checkConfigFile,
+  checkDevicesFile,
+  refreshDeviceFile,
+  loadStoredIPs,
+  devices
 } from './util.mjs';
+import Device from './device.mjs';
 
 const MEROSS_URL = 'https://iot.meross.com';
 const LOGIN_URL = MEROSS_URL + '/v1/Auth/Login';
 const DEV_LIST_URL = MEROSS_URL + '/v1/Device/devList';
+let deviceMap = new Map();
 
-async function test() {
+async function startup(forceIPReload) {
   let key = getConfigKey("key");
   let token = getConfigKey("token");
   let userid = getConfigKey("userid");
@@ -32,7 +38,7 @@ async function test() {
           prompt: "Password: ",
           silent: true
         }, async (err, password) => {
-          [token, key] = await login(email, password);
+          [token, key, userid] = await login(email, password);
           resolve();
         })
       })
@@ -40,46 +46,31 @@ async function test() {
     if (!key) throw new Error("Couldn't find key! Startup aborted!");
     setConfigKey("key", key);
     setConfigKey("token", token);
+    setConfigKey("userid", userid);
   }
-  console.log(await getDeviceList());
-}
-var checkDone = false;
-fs.exists('./config/config.json', (exists) => {
-  if (exists) {
-    fs.readFile('./config/config.json', (err, data) => {
-      if (err) throw err;
-      refreshConfig(JSON.parse(data));
-    })
-    checkDone = true;
-    return;
+  let uuids = await getDevicesUUIDs();
+  let ips;
+  if (!(await checkDevices(uuids)) || forceIPReload) {
+    console.log("Stored Devices are not up to date! Refresh!")
+    ips = await getDeviceIPs(uuids);
+    refreshDeviceFile(ips);
+    ips = getFields(ips, "ip");
+  } else {
+    console.log("Using stored Devices!");
+    ips = loadStoredIPs();
   }
-  fs.exists('./config/', (existsDir) => {
-    if (existsDir) {
-      fs.writeFile('./config/config.json', '{}', (err) => {
-        if (err) throw err;
-        refreshConfig({});
-      });
-      checkDone = true;
-      return;
-    }
-    fs.mkdir('./config/', (err) => {
-      if (err) throw err;
-      fs.writeFile('./config/config.json', '{}', (err) => {
-        if (err) throw err;
-        refreshConfig({});
-        checkDone = true;
-      });
-    })
+  console.log(ips);
+  ips.forEach((dev) => {
+    deviceMap.set(dev, new Device(dev));
   })
-})
-
+  deviceMap.get("192.168.2.162").setLEDState(false);
+  //[ '192.168.2.162', '10.10.10.2', '10.10.10.4' ]
+}
 new Promise(async (resolve, reject) => {
-  while (!checkDone) {
-    console.log("Waiting");
-    await sleep(250);
-  }
+  await checkConfigFile();
+  await checkDevicesFile();
   resolve();
-}).then(test);
+}).then(startup);
 
 async function login(email, password) {
   const options = {
@@ -95,22 +86,28 @@ async function login(email, password) {
   return [response.data.token, response.data.key, response.data.userid];
 }
 
-async function getDeviceList() {
-  //Get Devlist to obtain UUIDs of Devices
+async function getDevicesUUIDs() {
   let response = JSON.parse(await doRequest({
     url: DEV_LIST_URL,
     method: 'POST',
     headers: getAuthHeaders(),
     form: generateForm({})
-  }));
+  })).data;
+  let uuids = [];
+  for (let elem of response) {
+    if (elem.onlineStatus === 2) continue;
+    uuids.push(elem.uuid);
+  }
+  return uuids;
+}
 
-
+async function getDeviceIPs(uuids) {
   let innerIPs = [];
   let client;
   let responses = 0;
 
   //Connect mqtt client
-  const appId = crypto.createHash('md5').update('API' + response.data[0].uuid).digest("hex");
+  const appId = crypto.createHash('md5').update('API' + uuids[0]).digest("hex");
   const clientId = 'app:' + appId;
   const hashedPassword = crypto.createHash('md5').update(getConfigKey("userid") + getConfigKey("key")).digest("hex");
   client = mqtt.connect({
@@ -150,21 +147,23 @@ async function getDeviceList() {
       console.log('error', 'JSON parse error: ' + err);
       return;
     }
-    if (message.header.from && !isInArray(getFields(response.data, "uuid"), message.header.from)) return;
+    let uuidIndex = isInArray(uuids, message.header.from);
+    if (message.header.from && uuidIndex === -1) return;
     responses++;
-    innerIPs.push(message.payload.debug.network.innerIp);
+    innerIPs.push({
+      uuid: uuids[uuidIndex],
+      ip: message.payload.debug.network.innerIp
+    });
   });
 
-  for (let i = 0; i < response.data.length; i++) {
+  for (let i = 0; i < uuids.length; i++) {
     let data = generateBody("GET", clientResponseTopic, "Appliance.System.Debug", {})
-    if (!response.data[i].uuid || response.data[i].onlineStatus === 2) {
-      responses++;
-      continue;
-    }
-    client.publish('/appliance/' + response.data[i].uuid + '/subscribe', JSON.stringify(data));
+    client.publish('/appliance/' + uuids[i] + '/subscribe', JSON.stringify(data));
   }
-  while (responses != response.data.length) {
+  let iteration = 0;
+  while (responses != uuids.length && iteration <= 50) {
     await sleep(100);
+    iteration++;
   }
   client.end();
   return innerIPs;
@@ -182,4 +181,40 @@ async function getSystemAllData(ip) {
     },
     body: generateBody("GET", `http://${ip}/config`, "Appliance.System.All", {})
   });
+}
+
+export async function checkDevices(uuids) {
+  if (devices.length != uuids.length);
+  let tempMap = new Map();
+  devices.forEach(element => {
+    tempMap.set(element.uuid, element);
+  });
+
+  for (let i = 0; i < uuids.length; i++) {
+    let uuid = uuids[i];
+    let devData = tempMap.get(uuid);
+    if (!devData || uuid != devData.uuid) {
+      console.log(devData);
+      console.log(uuid);
+      console.log("Not matching --> return false");
+      return false;
+    }
+    let device = new Device(devData.ip);
+    let debugData;
+    try {
+      debugData = await device.getDebugData();
+    } catch (err) {
+      //TODO remove later
+      if (devData.ip == "192.168.2.162")
+        return false;
+      continue;
+    }
+
+    if (!debugData || debugData.payload.debug.network.innerIp != devData.ip) {
+      console.log("IPs Not matching --> return false");
+      return false;
+    }
+  }
+  console.log("Returned true");
+  return true;
 }

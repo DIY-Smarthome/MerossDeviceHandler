@@ -1,7 +1,9 @@
 import request from 'request';
 import crypto from 'crypto';
+import fs from 'fs';
 
 export var config;
+export var devices;
 const SECRET = '23x17ahWarFH6w29';
 
 export function doRequest(options) {
@@ -33,15 +35,15 @@ export function generateForm(data) {
 	};
 }
 
-export function generateBody(method, from, namespace, payload) {
+export function generateBody(bodyMethod, from, namespace, payload) {
 	const messageId = crypto.createHash('md5').update(generateRandomString(16)).digest("hex");
 	const timestamp = Math.round(new Date().getTime() / 1000); //int(round(time.time()))
 	const signature = crypto.createHash('md5').update(messageId + config["key"] + timestamp).digest("hex");
-	return {
+	let body = {
 		payload: payload,
 		header: {
 			messageId: messageId,
-			method: method,
+			method: bodyMethod,
 			from: from,
 			namespace: namespace,
 			timestamp: timestamp,
@@ -49,6 +51,7 @@ export function generateBody(method, from, namespace, payload) {
 			payloadVersion: 1
 		}
 	}
+	return body;
 }
 
 export function setConfigKey(key, value) {
@@ -74,9 +77,9 @@ export async function sleep(ms) {
 
 export function isInArray(needles, string) {
 	for (let i = 0; i < needles.length; i++) {
-		if (string.includes(needles[i])) return true;
+		if (string.includes(needles[i])) return i;
 	}
-	return false;
+	return -1;
 }
 
 export function getFields(input, field) {
@@ -96,6 +99,19 @@ export function getAuthHeaders() {
 	};
 }
 
+export function getDefaultHeader(method, ip) {
+	return {
+		json: true,
+		method: method,
+		strictSSL: false,
+		url: `http://${ip}/config`,
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: {}
+	}
+}
+
 export function generateRandomString(length) {
 	const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
 	let nonce = '';
@@ -108,4 +124,69 @@ export function generateRandomString(length) {
 export function encodeParams(parameters) {
 	const jsonstring = JSON.stringify(parameters);
 	return Buffer.from(jsonstring).toString('base64');
+}
+
+export async function checkConfigFile() {
+	await new Promise((resolve, reject) => {
+		fs.exists('./config/config.json', (exists) => {
+			if (exists) {
+				fs.readFile('./config/config.json', (err, data) => {
+					if (err) throw err;
+					refreshConfig(JSON.parse(data.toString()));
+					resolve();
+				})
+				return;
+			}
+			fs.exists('./config/', (existsDir) => {
+				if (existsDir) {
+					fs.writeFile('./config/config.json', '{}', (err) => {
+						if (err) throw err;
+						refreshConfig({});
+					});
+					resolve();
+					return;
+				}
+				fs.mkdir('./config/', (err) => {
+					if (err) throw err;
+					fs.writeFile('./config/config.json', '{}', (err) => {
+						if (err) throw err;
+						refreshConfig({});
+						resolve()
+					});
+				})
+				resolve();
+			})
+		})
+	});
+}
+
+export async function checkDevicesFile() {
+	await new Promise((resolve, reject) => {
+		fs.exists('./config/devices.json', (exists) => {
+			if (exists) {
+				fs.readFile('./config/devices.json', (err, data) => {
+					if (err) throw err;
+					devices = JSON.parse(data.toString());
+					resolve();
+				})
+				return;
+			}
+			fs.writeFile('./config/devices.json', '[]', (err) => {
+				if (err) throw err;
+				devices = [];
+			});
+			resolve();
+		})
+	});
+}
+
+export function loadStoredIPs() {
+	return getFields(devices, "ip");
+}
+
+export function refreshDeviceFile(newData) {
+	fs.writeFile('./config/devices.json', JSON.stringify(newData), (err) => {
+		if (err) throw err;
+		devices = newData;
+	})
 }
