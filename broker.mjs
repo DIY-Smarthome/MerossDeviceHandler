@@ -16,7 +16,8 @@ import {
   checkDevicesFile,
   refreshDeviceFile,
   loadStoredIPs,
-  devices
+  devices,
+  findInObject
 } from './util.mjs';
 import Device from './device.mjs';
 
@@ -50,20 +51,25 @@ async function startup(forceIPReload) {
   }
   let uuids = await getDevicesUUIDs();
   let ips;
-  if (!(await checkDevices(uuids)) || forceIPReload) {
+  if (!(await checkDevices(getFields(uuids, "uuid"))) || forceIPReload) {
     console.log("Stored Devices are not up to date! Refresh!")
-    ips = await getDeviceIPs(uuids);
+    ips = await getDeviceIPs(getFields(uuids, "uuid"));
     refreshDeviceFile(ips);
-    ips = getFields(ips, "ip");
   } else {
     console.log("Using stored Devices!");
     ips = loadStoredIPs();
   }
   console.log(ips);
   ips.forEach((dev) => {
-    deviceMap.set(dev, new Device(dev));
-  })
-  deviceMap.get("192.168.2.162").setLEDState(false);
+    let model = findInObject("uuid", dev.uuid, uuids).model;
+    deviceMap.set(dev.ip, new Device(dev.ip, model));
+    console.log("new device: " + dev.ip + " / " + model);
+  });
+  deviceMap.get("192.168.2.162").setPowerState(false);
+  await sleep(1000);
+  deviceMap.get("192.168.2.162").setPowerState(true, 2);
+  deviceMap.get("192.168.2.162").setLEDState(true);
+
   //[ '192.168.2.162', '10.10.10.2', '10.10.10.4' ]
 }
 new Promise(async (resolve, reject) => {
@@ -96,7 +102,10 @@ async function getDevicesUUIDs() {
   let uuids = [];
   for (let elem of response) {
     if (elem.onlineStatus === 2) continue;
-    uuids.push(elem.uuid);
+    uuids.push({
+      uuid: elem.uuid,
+      model: elem.deviceType
+    });
   }
   return uuids;
 }
@@ -152,7 +161,7 @@ async function getDeviceIPs(uuids) {
     responses++;
     innerIPs.push({
       uuid: uuids[uuidIndex],
-      ip: message.payload.debug.network.innerIp
+      ip: message.payload.debug.network.innerIp,
     });
   });
 

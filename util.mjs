@@ -181,7 +181,7 @@ export async function checkDevicesFile() {
 }
 
 export function loadStoredIPs() {
-	return getFields(devices, "ip");
+	return devices;
 }
 
 export function refreshDeviceFile(newData) {
@@ -189,4 +189,11 @@ export function refreshDeviceFile(newData) {
 		if (err) throw err;
 		devices = newData;
 	})
+}
+
+export function findInObject(fieldname, needle, haystack) {
+	for (let elem of haystack) {
+		if (elem[fieldname] == needle) return elem;
+	}
+	return null;
 }
