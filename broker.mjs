@@ -65,13 +65,9 @@ async function startup(forceIPReload) {
     deviceMap.set(dev.ip, new Device(dev.ip, model));
     console.log("new device: " + dev.ip + " / " + model);
   });
-  deviceMap.get("192.168.2.162").setPowerState(false);
-  await sleep(1000);
-  deviceMap.get("192.168.2.162").setPowerState(true, 2);
-  deviceMap.get("192.168.2.162").setLEDState(true);
-
   //[ '192.168.2.162', '10.10.10.2', '10.10.10.4' ]
 }
+
 new Promise(async (resolve, reject) => {
   await checkConfigFile();
   await checkDevicesFile();

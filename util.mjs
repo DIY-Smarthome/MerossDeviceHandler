@@ -103,6 +103,7 @@ export function getDefaultHeader(method, ip) {
 	return {
 		json: true,
 		method: method,
+		timeout: 1000,
 		strictSSL: false,
 		url: `http://${ip}/config`,
 		headers: {
