@@ -59,12 +59,16 @@ async function startup(forceIPReload) {
     console.log("Using stored Devices!");
     ips = loadStoredIPs();
   }
-  console.log(ips);
   ips.forEach((dev) => {
     let model = findInObject("uuid", dev.uuid, uuids).model;
     deviceMap.set(dev.ip, new Device(dev.ip, model));
-    console.log("new device: " + dev.ip + " / " + model);
+    console.log("Found device: " + dev.ip + " / " + model);
   });
+  let device = deviceMap.get("192.168.2.165");
+  if (!device) throw new Error("Device not found");
+  console.log(await device.getDebugData());
+  console.log(await device.getLEDState());
+  console.log(await device.getCurrentPowerConsumption());
   //[ '192.168.2.162', '10.10.10.2', '10.10.10.4' ]
 }
 
@@ -174,20 +178,6 @@ async function getDeviceIPs(uuids) {
   return innerIPs;
 }
 
-async function getSystemAllData(ip) {
-  //TODO Devicemap and custom data container
-  return await doRequest({
-    json: true,
-    method: "POST",
-    strictSSL: false,
-    url: `http://${ip}/config`,
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: generateBody("GET", `http://${ip}/config`, "Appliance.System.All", {})
-  });
-}
-
 export async function checkDevices(uuids) {
   if (devices.length != uuids.length);
   let tempMap = new Map();
@@ -199,9 +189,6 @@ export async function checkDevices(uuids) {
     let uuid = uuids[i];
     let devData = tempMap.get(uuid);
     if (!devData || uuid != devData.uuid) {
-      console.log(devData);
-      console.log(uuid);
-      console.log("Not matching --> return false");
       return false;
     }
     let device = new Device(devData.ip);
@@ -210,16 +197,14 @@ export async function checkDevices(uuids) {
       debugData = await device.getDebugData();
     } catch (err) {
       //TODO remove later
-      if (devData.ip == "192.168.2.162")
+      if (devData.ip == "192.168.2.161")
         return false;
       continue;
     }
 
-    if (!debugData || debugData.payload.debug.network.innerIp != devData.ip) {
-      console.log("IPs Not matching --> return false");
+    if (!debugData || debugData.debug.network.innerIp != devData.ip) {
       return false;
     }
   }
-  console.log("Returned true");
   return true;
 }

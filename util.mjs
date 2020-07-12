@@ -192,6 +192,12 @@ export function refreshDeviceFile(newData) {
 	})
 }
 
+/**
+ * SQL like: SELECT * from @param haystack where @param fieldname = @param needle
+ * @param fieldname 
+ * @param needle 
+ * @param haystack 
+ */
 export function findInObject(fieldname, needle, haystack) {
 	for (let elem of haystack) {
 		if (elem[fieldname] == needle) return elem;

@@ -12,14 +12,11 @@ export default class Device {
 	}
 
 	setLEDState(onoff) {
-		let options = util.getDefaultHeader("POST", this.ip);
-		options.body = util.generateBody("SET", `http://${this.ip}/config`, "Appliance.System.DNDMode", {
+		this.setValue("Appliance.System.DNDMode", {
 			"DNDMode": {
 				"mode": onoff ? 0 : 1
 			}
 		});
-
-		doRequest(options);
 	}
 
 	setPowerState(onoff) {
@@ -28,14 +25,12 @@ export default class Device {
 
 	setPowerState(onoff, channel) {
 		if (channel > this.getChannelCount()) throw new Error(`Invalid Channel ${channel}: Device only has ${this.getChannelCount()}`);
-		let options = util.getDefaultHeader("POST", this.ip);
-		options.body = util.generateBody("SET", `http://${this.ip}/config`, "Appliance.Control.ToggleX", {
+		this.setValue("Appliance.Control.ToggleX", {
 			"togglex": {
 				"onoff": onoff ? 1 : 0,
 				"channel": channel
 			}
 		});
-		doRequest(options);
 	}
 
 	getChannelCount() {
@@ -49,16 +44,29 @@ export default class Device {
 		}
 	}
 
+	async getCurrentPowerConsumption() {
+		//TODO FIX TIMEOUT
+		return (await this.getValue("Appliance.Control.Electricity")).payload;
+	}
+
 	async getDebugData() {
-		let options = util.getDefaultHeader("POST", this.ip);
-		options.body = util.generateBody("GET", `http://${this.ip}/config`, "Appliance.System.Debug", {})
-		return await doRequest(options);
+		return (await this.getValue("Appliance.System.Debug")).payload;
 	}
 
 	async getLEDState() {
-		let options = util.getDefaultHeader(this.ip);
-		options.body = util.generateBody("POST", `http://${this.ip}/config`, "Appliance.System.DNDMode", {}, "GET");
-		let result = await doRequest(options);
-		console.log(result) //TODO make return
+		return (await this.getValue("Appliance.System.DNDMode")).payload;
+	}
+
+	async getValue(namespace) {
+		let options = util.getDefaultHeader("POST", this.ip);
+		options.body = util.generateBody("GET", `http://${this.ip}/config`, namespace, {});
+		console.log(options);
+		return await doRequest(options);
+	}
+
+	setValue(namespace, payload) {
+		let options = util.getDefaultHeader("POST", this.ip);
+		options.body = util.generateBody("SET", `http://${this.ip}/config`, namespace, payload);
+		doRequest(options);
 	}
 }
