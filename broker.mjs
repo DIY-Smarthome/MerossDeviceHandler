@@ -64,12 +64,6 @@ async function startup(forceIPReload) {
     deviceMap.set(dev.ip, new Device(dev.ip, model));
     console.log("Found device: " + dev.ip + " / " + model);
   });
-  let device = deviceMap.get("192.168.2.165");
-  if (!device) throw new Error("Device not found");
-  console.log(await device.getDebugData());
-  console.log(await device.getLEDState());
-  console.log(await device.getCurrentPowerConsumption());
-  //[ '192.168.2.162', '10.10.10.2', '10.10.10.4' ]
 }
 
 new Promise(async (resolve, reject) => {
@@ -196,10 +190,7 @@ export async function checkDevices(uuids) {
     try {
       debugData = await device.getDebugData();
     } catch (err) {
-      //TODO remove later
-      if (devData.ip == "192.168.2.161")
-        return false;
-      continue;
+      return false;
     }
 
     if (!debugData || debugData.debug.network.innerIp != devData.ip) {
