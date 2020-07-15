@@ -1,4 +1,4 @@
-## Local IO Broker
+# Local IO Broker
 A little library that logs on to your Meross Cloud Account to find all devices, then handles all functions locally via HTTP.
 - No static IP Config needed
 - Easy setup
@@ -16,4 +16,6 @@ Functions:
 - [x] LED (DND-Mode) Switching
 - [ ] to be continued...
 
-## Project is still work in progress! Feel free to contribute.
+# Project is still work in progress! Feel free to contribute.
+# Community (Help, Assistance, Promote your project with the devicehandler, etc.)
+* Discord https://discord.gg/r4J3Eft
