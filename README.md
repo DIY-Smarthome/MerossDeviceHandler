@@ -14,8 +14,9 @@ Functions:
 - [x] Toggle Power
 - [x] Toggle Power per channel
 - [x] LED (DND-Mode) Switching
-- [ ] to be continued...
+- [Read how you can contribute to the project](../master/CONTRIBUTING.md)
 
-# Project is still work in progress! Feel free to contribute.
+# Project is still work in progress! Feel free to contribute .
+
 # Community (Help, Assistance, Promote your project with the devicehandler, etc.)
 * Discord https://discord.gg/r4J3Eft
