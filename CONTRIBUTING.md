@@ -15,7 +15,7 @@ Your submission will be covered by the same License as the whole project. If you
 If there is no similar topic open a new one.  
 Guidelines:
 * Summarize what happened
-* Describe the expected behaviour
+* Describe the expected behavior
 * Describe what actually happens
 * Show how the bug can be reproduced
   * Be as specific 
