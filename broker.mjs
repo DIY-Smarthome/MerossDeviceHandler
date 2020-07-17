@@ -24,9 +24,11 @@ import Device from './device.mjs';
 const MEROSS_URL = 'https://iot.meross.com';
 const LOGIN_URL = MEROSS_URL + '/v1/Auth/Login';
 const DEV_LIST_URL = MEROSS_URL + '/v1/Device/devList';
-let deviceMap = new Map();
+export let deviceMap = new Map();
 
-async function startup(forceIPReload) {
+export async function init(forceIPReload) {
+  await checkConfigFile();
+  await checkDevicesFile();
   let key = getConfigKey("key");
   let token = getConfigKey("token");
   let userid = getConfigKey("userid");
@@ -65,13 +67,11 @@ async function startup(forceIPReload) {
     await newDevice.init();
     deviceMap.set(device.ip, newDevice);
   }
+  console.log("Init finished.");
+  process.stdin.resume(); //TODO Remove later
 }
 
-new Promise(async (resolve, reject) => {
-  await checkConfigFile();
-  await checkDevicesFile();
-  resolve();
-}).then(startup);
+
 
 async function login(email, password) {
   const options = {

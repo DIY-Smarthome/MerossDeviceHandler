@@ -16,21 +16,21 @@ export default class Device {
 		this.abilities = await this.getAbilities();
 	}
 
-	setLEDState(onoff) {
-		this.setValue("Appliance.System.DNDMode", {
+	async setLEDState(onoff) {
+		await this.setValue("Appliance.System.DNDMode", {
 			"DNDMode": {
 				"mode": onoff ? 0 : 1
 			}
 		});
 	}
 
-	setPowerState(onoff) {
-		this.setPowerState(onoff, 0);
+	async setPowerState(onoff) {
+		await this.setPowerState(onoff, 0);
 	}
 
-	setPowerState(onoff, channel) {
+	async setPowerState(onoff, channel) {
 		if (channel > this.getChannelCount()) throw new Error(`Invalid Channel ${channel}: Device only has ${this.getChannelCount()}`);
-		this.setValue("Appliance.Control.ToggleX", {
+		await this.setValue("Appliance.Control.ToggleX", {
 			"togglex": {
 				"onoff": onoff ? 1 : 0,
 				"channel": channel
@@ -63,6 +63,7 @@ export default class Device {
 		return abilitiesTemp;
 	}
 
+	//TODO split payload
 	async getCurrentPowerConsumption() {
 		return (await this.getValue("Appliance.Control.Electricity")).payload;
 	}
@@ -82,10 +83,10 @@ export default class Device {
 		return await doRequest(options);
 	}
 
-	setValue(namespace, payload) {
+	async setValue(namespace, payload) {
 		if (this.abilities && !this.abilities.includes(namespace)) throw new Error(`Namespace ${namespace} is not applicable to device ${this.model}`);
 		let options = util.getDefaultHeader("POST", this.ip);
 		options.body = util.generateBody("SET", `http://${this.ip}/config`, namespace, payload);
-		doRequest(options);
+		await doRequest(options);
 	}
 }
