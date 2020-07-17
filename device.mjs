@@ -6,9 +6,14 @@ import {
 export default class Device {
 	ip;
 	model;
+	abilities;
 	constructor(ip, model) {
 		this.ip = ip;
 		this.model = model;
+	}
+
+	async init() {
+		this.abilities = await this.getAbilities();
 	}
 
 	setLEDState(onoff) {
@@ -44,8 +49,21 @@ export default class Device {
 		}
 	}
 
+	async getAbilities() {
+		if (this.abilities) return this.abilities;
+		return await this.reloadAbilities();
+	}
+
+	async reloadAbilities() {
+		let request = await this.getValue("Appliance.System.Ability");
+		let abilitiesTemp = [];
+		for (var key in request.payload.ability) {
+			abilitiesTemp.push(key);
+		}
+		return abilitiesTemp;
+	}
+
 	async getCurrentPowerConsumption() {
-		//TODO FIX TIMEOUT
 		return (await this.getValue("Appliance.Control.Electricity")).payload;
 	}
 
@@ -58,13 +76,14 @@ export default class Device {
 	}
 
 	async getValue(namespace) {
+		if (this.abilities && !this.abilities.includes(namespace)) throw new Error(`Namespace ${namespace} is not applicable to device ${this.model}`);
 		let options = util.getDefaultHeader("POST", this.ip);
 		options.body = util.generateBody("GET", `http://${this.ip}/config`, namespace, {});
-		console.log(options);
 		return await doRequest(options);
 	}
 
 	setValue(namespace, payload) {
+		if (this.abilities && !this.abilities.includes(namespace)) throw new Error(`Namespace ${namespace} is not applicable to device ${this.model}`);
 		let options = util.getDefaultHeader("POST", this.ip);
 		options.body = util.generateBody("SET", `http://${this.ip}/config`, namespace, payload);
 		doRequest(options);

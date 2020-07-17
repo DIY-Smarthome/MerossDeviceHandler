@@ -59,11 +59,12 @@ async function startup(forceIPReload) {
     console.log("Using stored Devices!");
     ips = loadStoredIPs();
   }
-  ips.forEach((dev) => {
-    let model = findInObject("uuid", dev.uuid, uuids).model;
-    deviceMap.set(dev.ip, new Device(dev.ip, model));
-    console.log("Found device: " + dev.ip + " / " + model);
-  });
+  for (var device of ips) {
+    let model = findInObject("uuid", device.uuid, uuids).model;
+    let newDevice = new Device(device.ip, model);
+    await newDevice.init();
+    deviceMap.set(device.ip, newDevice);
+  }
 }
 
 new Promise(async (resolve, reject) => {
