@@ -13,7 +13,7 @@ async function test() {
 	]
 	let ipArr = [...broker.deviceMap.keys()];
 	let ipIndex = readline.keyInSelect(ipArr, "Select IP to test on");
-	if (ipIndex === 0) return;
+	if (ipIndex === -1) return;
 	let ip = ipArr[ipIndex];
 	let device = broker.deviceMap.get(ip);
 	if (!device) throw new Error("Device not found!");
@@ -37,13 +37,13 @@ async function test() {
 					await device.setLEDState(newState);
 					break;
 				case 2:
-					console.log(await device.getLEDState());
+					console.log(`The LEDs are currently ${await device.getLEDState()?"on":"off"}`);
 					break;
 				case 3:
 					console.log(device.getChannelCount());
 					break;
 				case 4:
-					console.log(await device.getAbilites());
+					console.log(await device.getAbilities());
 					break;
 				case 5:
 					console.log(await device.getCurrentPowerConsumption());

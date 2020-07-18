@@ -63,17 +63,16 @@ export default class Device {
 		return abilitiesTemp;
 	}
 
-	//TODO split payload
 	async getCurrentPowerConsumption() {
-		return (await this.getValue("Appliance.Control.Electricity")).payload;
+		return (await this.getValue("Appliance.Control.Electricity")).payload.electricity;
 	}
 
 	async getDebugData() {
-		return (await this.getValue("Appliance.System.Debug")).payload;
+		return (await this.getValue("Appliance.System.Debug")).payload.debug;
 	}
 
 	async getLEDState() {
-		return (await this.getValue("Appliance.System.DNDMode")).payload;
+		return (await this.getValue("Appliance.System.DNDMode")).payload.DNDMode.mode == 0;
 	}
 
 	async getValue(namespace) {

@@ -194,7 +194,7 @@ export async function checkDevices(uuids) {
       return false;
     }
 
-    if (!debugData || debugData.debug.network.innerIp != devData.ip) {
+    if (!debugData || debugData.network.innerIp != devData.ip) {
       return false;
     }
   }
