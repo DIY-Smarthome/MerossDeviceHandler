@@ -19,4 +19,4 @@ Functions:
 # Project is still work in progress! Feel free to contribute .
 
 # Community (Help, Assistance, Promote your project with the devicehandler, etc.)
-* Discord https://discord.gg/r4J3Eft
+* Discord https://discord.gg/dEekZny
