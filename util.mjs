@@ -128,68 +128,19 @@ export function encodeParams(parameters) {
 }
 
 export async function checkConfigFile() {
-	await new Promise((resolve, reject) => {
-		fs.exists('./config/config.json', (exists) => {
-			if (exists) {
-				fs.readFile('./config/config.json', (err, data) => {
-					if (err) throw err;
-					refreshConfig(JSON.parse(data.toString()));
-					resolve();
-				})
-				return;
-			}
-			fs.exists('./config/', (existsDir) => {
-				if (existsDir) {
-					fs.writeFile('./config/config.json', '{}', (err) => {
-						if (err) throw err;
-						refreshConfig({});
-					});
-					resolve();
-					return;
-				}
-				fs.mkdir('./config/', (err) => {
-					if (err) throw err;
-					fs.writeFile('./config/config.json', '{}', (err) => {
-						if (err) throw err;
-						refreshConfig({});
-						resolve()
-					});
-				})
-				resolve();
-			})
-		})
-	});
+	if (fs.existsSync('./config/config.json')) return;
+	if (!fs.existsSync('./config/')) fs.mkdirSync('./config/');
+	fs.writeFileSync('./config/config.json', JSON.stringify({
+		"logLevel": "info",
+		"deviceLogLevel": "warning",
+		"requestTimeout": 1000
+	}))
 }
 
 export async function checkDevicesFile() {
-	await new Promise((resolve, reject) => {
-		fs.exists('./config/devices.json', (exists) => {
-			if (exists) {
-				fs.readFile('./config/devices.json', (err, data) => {
-					if (err) throw err;
-					devices = JSON.parse(data.toString());
-					resolve();
-				})
-				return;
-			}
-			fs.writeFile('./config/devices.json', '[]', (err) => {
-				if (err) throw err;
-				devices = [];
-			});
-			resolve();
-		})
-	});
-}
-
-export function loadStoredIPs() {
-	return devices;
-}
-
-export function refreshDeviceFile(newData) {
-	fs.writeFile('./config/devices.json', JSON.stringify(newData), (err) => {
-		if (err) throw err;
-		devices = newData;
-	})
+	if (fs.existsSync('./config/devices.json')) return;
+	if (!fs.existsSync('./config/')) fs.mkdirSync('./config/');
+	fs.writeFileSync('./config/devices.json', '[]');
 }
 
 /**
