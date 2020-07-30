@@ -7,7 +7,6 @@ import {
   generateBody,
   setConfigKey,
   getConfigKey,
-  refreshConfig,
   sleep,
   isInArray,
   getFields,
@@ -32,6 +31,7 @@ export async function init(forceIPReload) {
   let key = getConfigKey("key");
   let token = getConfigKey("token");
   let userid = getConfigKey("userid");
+
   if (!key || !token || !userid) {
     await new Promise((resolve) => {
       read({
@@ -56,6 +56,9 @@ export async function init(forceIPReload) {
   if (!(await checkDevices(getFields(uuids, "uuid"))) || forceIPReload) {
     console.log("Stored Devices are not up to date! Refresh!")
     ips = await getDeviceIPs(getFields(uuids, "uuid"));
+    for (let uuid of uuids) {
+      findInObject("uuid", uuid.uuid, ips).model = uuid.model; //Merge UUID/Model and UUID/IP Collection
+    }
     refreshDeviceFile(ips);
   } else {
     console.log("Using stored Devices!");
@@ -156,7 +159,7 @@ async function getDeviceIPs(uuids) {
     responses++;
     innerIPs.push({
       uuid: uuids[uuidIndex],
-      ip: message.payload.debug.network.innerIp,
+      ip: message.payload.debug.network.innerIp
     });
   });
 
@@ -186,10 +189,9 @@ export async function checkDevices(uuids) {
     if (!devData || uuid != devData.uuid) {
       return false;
     }
-    let device = new Device(devData.ip);
     let debugData;
     try {
-      debugData = await device.getDebugData();
+      debugData = await Device.getDebugData(devData.ip);
     } catch (err) {
       return false;
     }

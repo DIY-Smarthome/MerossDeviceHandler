@@ -1,15 +1,34 @@
 import * as util from './util.mjs';
 import {
+	getConfigKey,
 	doRequest
 } from './util.mjs';
+import winston from 'winston';
 
 export default class Device {
 	ip;
 	model;
 	abilities;
+	logger;
 	constructor(ip, model) {
 		this.ip = ip;
 		this.model = model;
+		this.logger = winston.createLogger({
+			level: 'info',
+			format: winston.format.combine(
+				winston.format.timestamp({
+					format: getConfigKey('timestampFormat') || 'YYYY-MM-DD HH:mm:ss'
+				}),
+				winston.format.align(),
+				winston.format.printf(info => `[${info.timestamp}] [${info.level}]: ${info.message}`)),
+			transports: [
+				new winston.transports.Console(),
+				new winston.transports.File({
+					filename: (ip + model) + ".log"
+				})
+			]
+		})
+		this.logger.info("Connection established");
 	}
 
 	async init() {
@@ -17,6 +36,7 @@ export default class Device {
 	}
 
 	async setLEDState(onoff) {
+		this.logger.info(`Setting LED to ${onoff}`);
 		await this.setValue("Appliance.System.DNDMode", {
 			"DNDMode": {
 				"mode": onoff ? 0 : 1
@@ -25,11 +45,16 @@ export default class Device {
 	}
 
 	async setPowerState(onoff) {
+		this.logger.info(`Setting Power to ${onoff} for the device`);
 		await this.setPowerState(onoff, 0);
 	}
 
 	async setPowerState(onoff, channel) {
-		if (channel > this.getChannelCount()) throw new Error(`Invalid Channel ${channel}: Device only has ${this.getChannelCount()}`);
+		this.logger.info(`Setting Power to ${onoff} for channel ${channel}`);
+		if (channel > this.getChannelCount()) {
+			this.logger.error(`Invalid Channel ${channel}: Device only has ${this.getChannelCount()}`);
+			return;
+		}
 		await this.setValue("Appliance.Control.ToggleX", {
 			"togglex": {
 				"onoff": onoff ? 1 : 0,
@@ -55,6 +80,7 @@ export default class Device {
 	}
 
 	async reloadAbilities() {
+		this.logger.info("Reloading device abilities");
 		let request = await this.getValue("Appliance.System.Ability");
 		let abilitiesTemp = [];
 		for (var key in request.payload.ability) {
@@ -69,6 +95,12 @@ export default class Device {
 
 	async getDebugData() {
 		return (await this.getValue("Appliance.System.Debug")).payload.debug;
+	}
+
+	static async getDebugData(ip) {
+		let options = util.getDefaultHeader("POST", ip);
+		options.body = util.generateBody("GET", `http://${ip}/config`, "Appliance.System.Debug", {});
+		return (await doRequest(options)).payload.debug;
 	}
 
 	async getLEDState() {

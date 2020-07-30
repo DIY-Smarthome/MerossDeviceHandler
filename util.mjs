@@ -1,9 +1,13 @@
 import request from 'request';
 import crypto from 'crypto';
-import fs from 'fs';
-
+import fs, {
+	write
+} from 'fs';
+import loadJsonFile from 'load-json-file';
+import writeJsonFile from 'write-json-file';
 export var config;
 export var devices;
+
 const SECRET = '23x17ahWarFH6w29';
 
 export function doRequest(options) {
@@ -54,19 +58,19 @@ export function generateBody(bodyMethod, from, namespace, payload) {
 	return body;
 }
 
-export function setConfigKey(key, value) {
-	config[key] = value;
-	fs.writeFile('./config/config.json', JSON.stringify(config), (err) => {
-		if (err) throw err;
-	})
-}
-
 export function getConfigKey(key) {
 	return config[key];
 }
 
-export function refreshConfig(newConfig) {
-	config = newConfig;
+export function setConfigKey(key, value) {
+	//TODO logging
+	config[key] = value;
+	writeJsonFile('./config/config.json', config);
+}
+
+export function refreshDeviceFile(newData) {
+	devices = newData;
+	writeJsonFile('./config/devices.json', devices);
 }
 
 export async function sleep(ms) {
@@ -128,19 +132,32 @@ export function encodeParams(parameters) {
 }
 
 export async function checkConfigFile() {
-	if (fs.existsSync('./config/config.json')) return;
+	if (fs.existsSync('./config/config.json')) {
+		config = await loadJsonFile('./config/config.json');
+		return;
+	}
 	if (!fs.existsSync('./config/')) fs.mkdirSync('./config/');
-	fs.writeFileSync('./config/config.json', JSON.stringify({
+	config = {
 		"logLevel": "info",
 		"deviceLogLevel": "warning",
 		"requestTimeout": 1000
-	}))
+	};
+	await writeJsonFile('./config/config.json', config);
 }
 
 export async function checkDevicesFile() {
-	if (fs.existsSync('./config/devices.json')) return;
+	if (fs.existsSync('./config/devices.json')) {
+		devices = await loadJsonFile('./config/devices.json');
+		return;
+	}
 	if (!fs.existsSync('./config/')) fs.mkdirSync('./config/');
-	fs.writeFileSync('./config/devices.json', '[]');
+	devices = [];
+	await writeJsonFile('./config/devices.json', devices);
+}
+
+export function loadStoredIPs() {
+	//TODO logging
+	return devices;
 }
 
 /**
