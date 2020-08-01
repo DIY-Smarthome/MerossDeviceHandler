@@ -11,10 +11,12 @@ export default class Device {
 	abilities;
 	logger;
 	uuid;
-	constructor(ip, model, uuid) {
+	name;
+	constructor(ip, model, uuid, name) {
 		this.ip = ip;
 		this.model = model;
 		this.uuid = uuid;
+		this.name = name;
 		this.logger = winston.createLogger({
 			level: 'info',
 			format: winston.format.combine(
@@ -109,8 +111,12 @@ export default class Device {
 		return (await this.getValue("Appliance.System.DNDMode")).payload.DNDMode.mode == 0;
 	}
 
-	async getName() {
-		return (await this.getValue);
+	async getPowerState() {
+		return await this.getPowerState(0);
+	}
+
+	async getPowerState(channel) {
+		return (await this.getValue("Appliance.System.All")).payload.all.digest.togglex[channel].onoff == 1;
 	}
 
 	async getValue(namespace) {

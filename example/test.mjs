@@ -3,7 +3,9 @@ import readline from 'readline-sync';
 
 async function test() {
 	await broker.init(false);
-	var menu = ["Set Powerstate",
+	var menu = [
+		"Set Powerstate",
+		"Get Powerstate",
 		"Set LED State",
 		"Get LED State",
 		"Get Channel count",
@@ -23,9 +25,9 @@ async function test() {
 		let newState;
 		result = readline.keyInSelect(menu, "Which Command to you want to run?");
 		try {
+			let channel = 0;
 			switch (result) {
 				case 0:
-					let channel = 0;
 					if (device.getChannelCount() > 1) {
 						let single = readline.keyInYN("Set single channel ? ");
 						if (single) channel = readline.questionInt("Choose channel");
@@ -34,25 +36,32 @@ async function test() {
 					await device.setPowerState(newState, channel);
 					break;
 				case 1:
+					if (device.getChannelCount() > 1) {
+						let single = readline.keyInYN("Set single channel ? ");
+						if (single) channel = readline.questionInt("Choose channel");
+					}
+					console.log(`${channel!=0?`Channel ${channel}`:'Device'} is currently ${await device.getPowerState(channel)?"":"not "}powered`);
+					break;
+				case 2:
 					newState = readline.question("Toggle to on/off: ").toLowerCase() == "on";
 					await device.setLEDState(newState);
 					break;
-				case 2:
+				case 3:
 					console.log(`The LEDs are currently ${await device.getLEDState()?"on":"off"}`);
 					break;
-				case 3:
+				case 4:
 					console.log(device.getChannelCount());
 					break;
-				case 4:
+				case 5:
 					console.log(await device.getAbilities());
 					break;
-				case 5:
+				case 6:
 					console.log(await device.getCurrentPowerConsumption());
 					break;
-				case 6:
+				case 7:
 					console.log(await device.getDebugData());
 					break;
-				case 7:
+				case 8:
 					let namespace = readline.question("Enter namespace to query: ");
 					console.log(JSON.stringify(await device.getValue(namespace)));
 					break;

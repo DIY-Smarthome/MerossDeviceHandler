@@ -67,8 +67,7 @@ export async function init(forceIPReload) {
     ips = loadStoredIPs();
   }
   for (var device of ips) {
-    let model = findInObject("uuid", device.uuid, uuids).model;
-    let newDevice = new Device(device.ip, model);
+    let newDevice = new Device(device.ip, device.model, device.uuid, device.name);
     await newDevice.init();
     deviceMap.set(device.ip, newDevice);
   }
