@@ -57,7 +57,9 @@ export async function init(forceIPReload) {
     console.log("Stored Devices are not up to date! Refresh!")
     ips = await getDeviceIPs(getFields(uuids, "uuid"));
     for (let uuid of uuids) {
-      findInObject("uuid", uuid.uuid, ips).model = uuid.model; //Merge UUID/Model and UUID/IP Collection
+      let temp = findInObject("uuid", uuid.uuid, ips); //Merge UUID/Model and UUID/IP Collection
+      temp.model = uuid.model;
+      temp.name = uuid.name;
     }
     refreshDeviceFile(ips);
   } else {
@@ -102,7 +104,8 @@ async function getDevicesUUIDs() {
     if (elem.onlineStatus === 2) continue;
     uuids.push({
       uuid: elem.uuid,
-      model: elem.deviceType
+      model: elem.deviceType,
+      name: elem.devName
     });
   }
   return uuids;

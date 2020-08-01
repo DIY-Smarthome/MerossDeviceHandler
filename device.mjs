@@ -10,9 +10,11 @@ export default class Device {
 	model;
 	abilities;
 	logger;
-	constructor(ip, model) {
+	uuid;
+	constructor(ip, model, uuid) {
 		this.ip = ip;
 		this.model = model;
+		this.uuid = uuid;
 		this.logger = winston.createLogger({
 			level: 'info',
 			format: winston.format.combine(
@@ -105,6 +107,10 @@ export default class Device {
 
 	async getLEDState() {
 		return (await this.getValue("Appliance.System.DNDMode")).payload.DNDMode.mode == 0;
+	}
+
+	async getName() {
+		return (await this.getValue);
 	}
 
 	async getValue(namespace) {
