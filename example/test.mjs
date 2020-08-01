@@ -9,7 +9,8 @@ async function test() {
 		"Get Channel count",
 		"Get Abilites",
 		"Get current Powerconsumption",
-		"Get Debug Data"
+		"Get Debug Data",
+		"Get Custom Namespace"
 	]
 	let ipArr = [...broker.deviceMap.keys()];
 	let ipIndex = readline.keyInSelect(ipArr, "Select IP to test on");
@@ -50,6 +51,10 @@ async function test() {
 					break;
 				case 6:
 					console.log(await device.getDebugData());
+					break;
+				case 7:
+					let namespace = readline.question("Enter namespace to query: ");
+					console.log(JSON.stringify(await device.getValue(namespace)));
 					break;
 			}
 		} catch (e) {
