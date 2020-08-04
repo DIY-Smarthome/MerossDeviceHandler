@@ -1,18 +1,16 @@
 import request from 'request';
 import crypto from 'crypto';
-import fs, {
-	write
-} from 'fs';
+import fs from 'fs';
 import loadJsonFile from 'load-json-file';
 import writeJsonFile from 'write-json-file';
-export var config;
-export var devices;
+export var config: any;
+export var devices: any;
 
 const SECRET = '23x17ahWarFH6w29';
 
-export function doRequest(options) {
+export function doRequest(options: any): any {
 	return new Promise(function (resolve, reject) {
-		request(options, function (error, res, body) {
+		request(options, function (error: Error, res: any, body: any) {
 			if (!error && res.statusCode == 200) {
 				resolve(body);
 			} else {
@@ -22,7 +20,7 @@ export function doRequest(options) {
 	});
 }
 
-export function generateForm(data) {
+export function generateForm(data: any): any {
 	const nonce = generateRandomString(16);
 	const timestampMillis = Date.now();
 	const encodedData = encodeParams(data);
@@ -39,7 +37,7 @@ export function generateForm(data) {
 	};
 }
 
-export function generateBody(bodyMethod, from, namespace, payload) {
+export function generateBody(bodyMethod: "GET"|"SET", from:string, namespace: string, payload: any): any {
 	const messageId = crypto.createHash('md5').update(generateRandomString(16)).digest("hex");
 	const timestamp = Math.round(new Date().getTime() / 1000); //int(round(time.time()))
 	const signature = crypto.createHash('md5').update(messageId + config["key"] + timestamp).digest("hex");
@@ -58,42 +56,42 @@ export function generateBody(bodyMethod, from, namespace, payload) {
 	return body;
 }
 
-export function getConfigKey(key) {
+export function getConfigKey(key: string): any {
 	return config[key];
 }
 
-export function setConfigKey(key, value) {
+export function setConfigKey(key: string, value: any): void {
 	//TODO logging
 	config[key] = value;
 	writeJsonFile('./config/config.json', config);
 }
 
-export function refreshDeviceFile(newData) {
+export function refreshDeviceFile(newData: any): void {
 	devices = newData;
 	writeJsonFile('./config/devices.json', devices);
 }
 
-export async function sleep(ms) {
+export async function sleep(ms: number): Promise<void> {
 	return new Promise(resolve => {
 		setTimeout(resolve, ms);
 	});
 }
 
-export function isInArray(needles, string) {
+export function isInArray(needles: string[], string:string): number {
 	for (let i = 0; i < needles.length; i++) {
 		if (string.includes(needles[i])) return i;
 	}
 	return -1;
 }
 
-export function getFields(input, field) {
+export function getFields(input: any[], field:string): any[] {
 	var output = [];
 	for (var i = 0; i < input.length; i++)
 		output.push(input[i][field]);
 	return output;
 }
 
-export function getAuthHeaders() {
+export function getAuthHeaders(): any {
 	return {
 		"Authorization": "Basic " + (config["token"] || ''),
 		"vender": "Meross",
@@ -103,7 +101,7 @@ export function getAuthHeaders() {
 	};
 }
 
-export function getDefaultHeader(method, ip) {
+export function getDefaultHeader(method: "POST"|"GET", ip: string): any {
 	return {
 		json: true,
 		method: method,
@@ -117,7 +115,7 @@ export function getDefaultHeader(method, ip) {
 	}
 }
 
-export function generateRandomString(length) {
+export function generateRandomString(length: number):string {
 	const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
 	let nonce = '';
 	while (nonce.length < length) {
@@ -126,12 +124,12 @@ export function generateRandomString(length) {
 	return nonce;
 }
 
-export function encodeParams(parameters) {
+export function encodeParams(parameters: any): string {
 	const jsonstring = JSON.stringify(parameters);
 	return Buffer.from(jsonstring).toString('base64');
 }
 
-export async function checkConfigFile() {
+export async function checkConfigFile(): Promise<void> {
 	if (fs.existsSync('./config/config.json')) {
 		config = await loadJsonFile('./config/config.json');
 		return;
@@ -145,7 +143,7 @@ export async function checkConfigFile() {
 	await writeJsonFile('./config/config.json', config);
 }
 
-export async function checkDevicesFile() {
+export async function checkDevicesFile(): Promise<void> {
 	if (fs.existsSync('./config/devices.json')) {
 		devices = await loadJsonFile('./config/devices.json');
 		return;
@@ -155,7 +153,7 @@ export async function checkDevicesFile() {
 	await writeJsonFile('./config/devices.json', devices);
 }
 
-export function loadStoredIPs() {
+export function loadStoredIPs(): Promise<any> {
 	//TODO logging
 	return devices;
 }
@@ -166,7 +164,7 @@ export function loadStoredIPs() {
  * @param needle 
  * @param haystack 
  */
-export function findInObject(fieldname, needle, haystack) {
+export function findInObject(fieldname: string, needle:any, haystack:any): any {
 	for (let elem of haystack) {
 		if (elem[fieldname] == needle) return elem;
 	}

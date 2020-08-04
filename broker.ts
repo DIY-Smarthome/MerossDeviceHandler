@@ -17,15 +17,15 @@ import {
   loadStoredIPs,
   devices,
   findInObject
-} from './util.mjs';
-import Device from './device.mjs';
+} from './util';
+import Device from './device';
 
 const MEROSS_URL = 'https://iot.meross.com';
 const LOGIN_URL = MEROSS_URL + '/v1/Auth/Login';
 const DEV_LIST_URL = MEROSS_URL + '/v1/Device/devList';
 export let deviceMap = new Map();
 
-export async function init(forceIPReload) {
+export async function init(forceIPReload: boolean): Promise<void> {
   await checkConfigFile();
   await checkDevicesFile();
   let key = getConfigKey("key");
@@ -36,11 +36,11 @@ export async function init(forceIPReload) {
     await new Promise((resolve) => {
       read({
         prompt: "No Key in config file found, please enter Meross login credentials:\r\nEmail: "
-      }, (err, email) => {
+      }, (err:Error, email:string) => {
         read({
           prompt: "Password: ",
           silent: true
-        }, async (err, password) => {
+        }, async (err: Error, password:string) => {
           [token, key, userid] = await login(email, password);
           resolve();
         })
@@ -77,7 +77,7 @@ export async function init(forceIPReload) {
 
 
 
-async function login(email, password) {
+async function login(email:string, password:string):Promise<[string, string, string]> {
   const options = {
     url: LOGIN_URL,
     method: 'POST',
@@ -91,7 +91,7 @@ async function login(email, password) {
   return [response.data.token, response.data.key, response.data.userid];
 }
 
-async function getDevicesUUIDs() {
+async function getDevicesUUIDs(): Promise<any> {
   let response = JSON.parse(await doRequest({
     url: DEV_LIST_URL,
     method: 'POST',
@@ -110,9 +110,9 @@ async function getDevicesUUIDs() {
   return uuids;
 }
 
-async function getDeviceIPs(uuids) {
-  let innerIPs = [];
-  let client;
+async function getDeviceIPs(uuids:string[]): Promise<any> {
+  let innerIPs:any[] = [];
+  let client: mqtt.MqttClient;
   let responses = 0;
 
   //Connect mqtt client
@@ -148,7 +148,7 @@ async function getDeviceIPs(uuids) {
   });
 
   //Bind message eventlistener an receive Debuginfo
-  client.on('message', (topic, message) => {
+  client.on('message', (topic:any, message:any) => {
     if (!message) return;
     try {
       message = JSON.parse(message.toString());
@@ -178,10 +178,10 @@ async function getDeviceIPs(uuids) {
   return innerIPs;
 }
 
-export async function checkDevices(uuids) {
-  if (devices.length != uuids.length);
+export async function checkDevices(uuids:string[]): Promise<boolean> {
+  if (devices.length != uuids.length) return false;
   let tempMap = new Map();
-  devices.forEach(element => {
+  devices.forEach((element: any) => {
     tempMap.set(element.uuid, element);
   });
 
