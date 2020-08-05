@@ -1,10 +1,10 @@
-import * as util from './util';
+import * as util from '../util';
 import {
 	getConfigKey,
 	doRequest
-} from './util';
+} from '../util';
 import winston from 'winston';
-
+import { genericDeviceData } from '../interfaces/frontendDataDefinitions'
 export default class Device {
 	ip: string;
 	model:string;
@@ -12,8 +12,6 @@ export default class Device {
 	logger: winston.Logger;
 	uuid: string;
 	name: string;
-	ledState: boolean = false;
-	powerStates: boolean[] = [];
 	constructor(ip:string, model:string, uuid:string, name:string) {
 		this.ip = ip;
 		this.model = model;
@@ -35,46 +33,11 @@ export default class Device {
 			]
 		})
 		this.logger.info("Connection established");
+		this.logger.info("Device is running as type 'Device'");
 	}
 
 	async init(): Promise<void> {
 		this.abilities = await this.getAbilities();
-		this.ledState = await this.getLEDState();
-		this.powerStates = await this.getPowerStates();
-	}
-
-	async setLEDState(onoff: boolean):Promise<void> {
-		this.logger.info(`Setting LED to ${onoff}`);
-		await this.setValue("Appliance.System.DNDMode", {
-			"DNDMode": {
-				"mode": onoff ? 0 : 1
-			}
-		});
-	}
-
-	async setPowerState(onoff:boolean, channel = 0): Promise<void> {
-		this.logger.info(`Setting Power to ${onoff} for channel ${channel}`);
-		if (channel > this.getChannelCount()) {
-			this.logger.error(`Invalid Channel ${channel}: Device only has ${this.getChannelCount()}`);
-			return;
-		}
-		await this.setValue("Appliance.Control.ToggleX", {
-			"togglex": {
-				"onoff": onoff ? 1 : 0,
-				"channel": channel
-			}
-		});
-	}
-
-	getChannelCount(): number {
-		switch (this.model) {
-			case 'mss425f':
-				return 6;
-			case 'mss310':
-				return 1;
-			default:
-				return 0;
-		}
 	}
 
 	async getAbilities(): Promise<string[]> {
@@ -94,10 +57,6 @@ export default class Device {
 		return abilitiesTemp;
 	}
 
-	async getCurrentPowerConsumption():Promise<any> {
-		return (await this.getValue("Appliance.Control.Electricity")).payload.electricity;
-	}
-
 	async getDebugData(): Promise<any> {
 		return (await this.getValue("Appliance.System.Debug")).payload.debug;
 	}
@@ -106,23 +65,6 @@ export default class Device {
 		let options = util.getDefaultHeader("POST", ip);
 		options.body = util.generateBody("GET", `http://${ip}/config`, "Appliance.System.Debug", {});
 		return (await doRequest(options)).payload.debug;
-	}
-
-	async getLEDState(): Promise<boolean> {
-		return (await this.getValue("Appliance.System.DNDMode")).payload.DNDMode.mode == 0;
-	}
-
-	async getPowerState(channel=0): Promise<boolean> {
-		return (await this.getPowerStates())[channel];
-	}
-
-	async getPowerStates(): Promise<boolean[]> {
-		let togglex = (await this.getValue("Appliance.System.All")).payload.all.digest.togglex;
-		let states = [];
-		for (let channel of togglex) {
-			states.push(channel.onoff == 1);
-		}
-		return states;
 	}
 
 	async getValue(namespace: string): Promise<any> {
@@ -145,19 +87,14 @@ export default class Device {
 		await doRequest(options);
 	}
 
-	async getValues() {
+	async getValues(): Promise<genericDeviceData> {
 		this.abilities = await this.reloadAbilities();
-		this.ledState = await this.getLEDState();
-		this.powerStates = await this.getPowerStates();
 		return {
 			abilities: this.abilities,
-			ledState: this.ledState,
-			powerStates: this.powerStates,
 			ip: this.ip,
 			uuid: this.uuid,
 			name: this.name,
 			model: this.model
 		}
-
 	}
 }

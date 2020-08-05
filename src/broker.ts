@@ -18,7 +18,9 @@ import {
   devices,
   findInObject
 } from './util';
-import Device from './device';
+import Device from './devices/device';
+import Plug from './devices/Plug';
+import Switch from './devices/Switch';
 
 const MEROSS_URL = 'https://iot.meross.com';
 const LOGIN_URL = MEROSS_URL + '/v1/Auth/Login';
@@ -56,8 +58,10 @@ export async function init(forceIPReload: boolean): Promise<void> {
   if (!(await checkDevices(getFields(uuids, "uuid"))) || forceIPReload) {
     console.log("Stored Devices are not up to date! Refresh!")
     ips = await getDeviceIPs(getFields(uuids, "uuid"));
+    console.log(uuids);
     for (let uuid of uuids) {
       let temp = findInObject("uuid", uuid.uuid, ips); //Merge UUID/Model and UUID/IP Collection
+      console.log(temp);
       temp.model = uuid.model;
       temp.name = uuid.name;
     }
@@ -67,7 +71,7 @@ export async function init(forceIPReload: boolean): Promise<void> {
     ips = loadStoredIPs();
   }
   for (var device of ips) {
-    let newDevice = new Device(device.ip, device.model, device.uuid, device.name);
+    let newDevice = createDevice(device.ip, device.model, device.uuid, device.name);
     await newDevice.init();
     deviceMap.set(device.ip, newDevice);
   }
@@ -203,4 +207,15 @@ export async function checkDevices(uuids:string[]): Promise<boolean> {
     }
   }
   return true;
+}
+
+function createDevice(ip:string, model:string, uuid:string, name:string): Plug|Switch|Device {
+  switch (model) {
+    case "mss310":
+      return new Plug(ip, model, uuid, name);
+    case "mss425f":
+      return new Switch(ip, model, uuid, name);
+    default:
+      return new Device(ip, model, uuid, name);
+  }
 }
