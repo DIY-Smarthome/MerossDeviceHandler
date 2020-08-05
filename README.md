@@ -23,9 +23,11 @@ Supported functions:
 - Powerstate per Channel (Get/Set)
 #### More to come
 
+## Project is still work in progress! Feel free to [contribute](../master/CONTRIBUTING.md).
 
-# Project is still work in progress! Feel free to [contribute](../master/CONTRIBUTING.md) .
+## Community (Help, Assistance, Promote your project with the devicehandler, etc.)
+Discord https://discord.gg/dEekZny
 
-# Community (Help, Assistance, Promote your project with the devicehandler, etc.)
-* Discord https://discord.gg/dEekZny
-* Contact Owner at contact@quisel.eu
+---
+
+Contact Owner at contact@quisel.eu
