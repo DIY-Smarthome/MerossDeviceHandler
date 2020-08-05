@@ -17,5 +17,9 @@
     "request": "^2.88.2",
     "winston": "^3.3.3",
     "write-json-file": "^4.3.0"
+  },
+  "devDependencies": {
+    "@types/readline-sync": "^1.4.3",
+    "@types/request": "^2.48.5"
   }
 }
