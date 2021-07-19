@@ -19,6 +19,7 @@
     "write-json-file": "^4.3.0"
   },
   "devDependencies": {
+    "@types/read": "^0.0.29",
     "@types/readline-sync": "^1.4.3",
     "@types/request": "^2.48.5"
   }
