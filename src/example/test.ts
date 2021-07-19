@@ -1,8 +1,10 @@
-import * as broker from '../broker';
+import * as broker from '../index';
 import readline from 'readline-sync';
+import Eventhandler from '../../EventHandler/Eventhandler';
+import { EventEmitter } from 'stream';
 
 async function test() {
-	await broker.init(false);
+	await broker.init(new Eventhandler(new EventEmitter), false);
 	let ipArr = [...broker.deviceMap.keys()];
 	let ipIndex = readline.keyInSelect(ipArr, "Select IP to test on");
 	if (ipIndex === -1) return;

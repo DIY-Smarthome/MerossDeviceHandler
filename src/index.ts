@@ -21,13 +21,14 @@ import {
 import Device from './devices/device';
 import Plug from './devices/Plug';
 import Switch from './devices/Switch';
+import Eventhandler from '../EventHandler/Eventhandler';
 
 const MEROSS_URL = 'https://iot.meross.com';
 const LOGIN_URL = MEROSS_URL + '/v1/Auth/Login';
 const DEV_LIST_URL = MEROSS_URL + '/v1/Device/devList';
 export let deviceMap = new Map();
 
-export async function init(forceIPReload: boolean): Promise<void> {
+export async function init(eventhandler: Eventhandler, forceIPReload: boolean): Promise<void> {
   await checkConfigFile();
   await checkDevicesFile();
   let key = getConfigKey("key");
@@ -35,7 +36,7 @@ export async function init(forceIPReload: boolean): Promise<void> {
   let userid = getConfigKey("userid");
 
   if (!key || !token || !userid) {
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       read({
         prompt: "No Key in config file found, please enter Meross login credentials:\r\nEmail: "
       }, (err:Error, email:string) => {
