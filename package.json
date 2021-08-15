@@ -12,13 +12,14 @@
     "crypto": "^1.0.1",
     "load-json-file": "^6.2.0",
     "mqtt": "^4.1.0",
+    "node-fetch": "^2.6.1",
     "read": "^1.0.7",
     "readline-sync": "^1.4.10",
-    "request": "^2.88.2",
     "winston": "^3.3.3",
     "write-json-file": "^4.3.0"
   },
   "devDependencies": {
+    "@types/node-fetch": "^2.5.12",
     "@types/read": "^0.0.29",
     "@types/readline-sync": "^1.4.3",
     "@types/request": "^2.48.5"

@@ -1,4 +1,4 @@
-import request from 'request';
+import https from 'https';
 import crypto from 'crypto';
 import fs from 'fs';
 import loadJsonFile from 'load-json-file';
@@ -8,15 +8,37 @@ export var devices: any;
 
 const SECRET = '23x17ahWarFH6w29';
 
-export function doRequest(options: any): any {
+export function doRequest(hostname:string, path:string, method:string, headers:any, body:any): any {
 	return new Promise(function (resolve, reject) {
-		request(options, function (error: Error, res: any, body: any) {
-			if (!error && res.statusCode == 200) {
-				resolve(body);
-			} else {
-				reject(error);
-			}
-		});
+		const data = JSON.stringify(body)
+		headers['Content-Type'] = 'application/json';
+		headers['Content-Length'] = data.length;
+		const options = {
+			hostname: hostname,
+			port: 443,
+			path: path,
+			method: method,
+			headers: headers
+		}
+
+		const req = https.request(options, res => {
+			console.log(`statusCode: ${res.statusCode}`)
+		
+			res.on('data', d => {
+				process.stdout.write(d)
+				resolve(d);
+			})
+		})
+
+		req.on('error', error => {
+			console.error(error)
+			reject(error);
+		})
+
+		if (method !== "GET")
+			req.write(data)
+		
+		req.end()
 	});
 }
 
@@ -97,7 +119,7 @@ export function getAuthHeaders(): any {
 		"vender": "Meross",
 		"AppVersion": "1.3.0",
 		"AppLanguage": "EN",
-		"User-Agent": "okhttp/3.6.0"
+		"User-Agent": "okhttp/3.6.0",
 	};
 }
 
