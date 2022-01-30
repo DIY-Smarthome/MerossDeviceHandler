@@ -4,7 +4,8 @@
   "description": "Test",
   "main": "broker.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npm run build-ts",
+    "build-ts": "tsc --build tsconfig.json"
   },
   "author": "",
   "license": "ISC",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@types/readline-sync": "^1.4.3",
-    "@types/request": "^2.48.5"
+    "@types/request": "^2.48.5",
+    "@types/ws": "^8.2.2"
   }
 }
