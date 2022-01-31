@@ -21,10 +21,13 @@ import {
 import Device from './devices/device';
 import Plug from './devices/Plug';
 import Switch from './devices/Switch';
+import EventHandler from '../EventHandler/EventHandler';
 
-const MEROSS_URL = 'https://iot.meross.com';
-const LOGIN_URL = MEROSS_URL + '/v1/Auth/Login';
-const DEV_LIST_URL = MEROSS_URL + '/v1/Device/devList';
+const MEROSS_URL = 'iot.meross.com';
+const LOGIN_PART = '/v1/Auth/Login'
+const LOGIN_URL = MEROSS_URL + LOGIN_PART;
+const DEV_LIST_PART = '/v1/Device/devList'
+//const DEV_LIST_URL = MEROSS_URL + DEV_LIST_PART;
 export let deviceMap = new Map();
 
 export async function init(forceIPReload: boolean): Promise<void> {
@@ -35,7 +38,7 @@ export async function init(forceIPReload: boolean): Promise<void> {
   let userid = getConfigKey("userid");
 
   if (!key || !token || !userid) {
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       read({
         prompt: "No Key in config file found, please enter Meross login credentials:\r\nEmail: "
       }, (err:Error, email:string) => {
@@ -75,6 +78,8 @@ export async function init(forceIPReload: boolean): Promise<void> {
     await newDevice.init();
     deviceMap.set(device.ip, newDevice);
   }
+  let eventhandler = new EventHandler("127.0.0.1", 8000, "MerossDeviceHandler");
+  await eventhandler.init();
   console.log("Init finished.");
   process.stdin.resume(); //TODO Remove later
 }
@@ -91,17 +96,19 @@ async function login(email:string, password:string):Promise<[string, string, str
       password: password
     })
   };
-  let response = JSON.parse(await doRequest(options));
+  console.log(options);
+  let response = JSON.parse(await doRequest(MEROSS_URL, LOGIN_PART, 'POST', options.headers, options.form));
   return [response.data.token, response.data.key, response.data.userid];
 }
 
 async function getDevicesUUIDs(): Promise<any> {
-  let response = JSON.parse(await doRequest({
-    url: DEV_LIST_URL,
-    method: 'POST',
-    headers: getAuthHeaders(),
-    form: generateForm({})
-  })).data;
+  let response = JSON.parse(await doRequest(
+    MEROSS_URL,
+    DEV_LIST_PART,
+    'POST',
+    getAuthHeaders(),
+    generateForm({})
+  )).data;
   let uuids = [];
   for (let elem of response) {
     if (elem.onlineStatus === 2) continue;
