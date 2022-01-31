@@ -1,6 +1,6 @@
 import device from './device';
 import { plugData } from '../interfaces/frontendDataDefinitions';
-import { PowerConsumption } from 'src/interfaces/dataDefinitions';
+import { PowerConsumption } from '../interfaces/dataDefinitions';
 
 export default class Switch extends device {
 	ledState: boolean = false;
