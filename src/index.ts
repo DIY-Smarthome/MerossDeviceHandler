@@ -21,7 +21,7 @@ import {
 import Device from './devices/device';
 import Plug from './devices/Plug';
 import Switch from './devices/Switch';
-import Eventhandler from '../EventHandler/Eventhandler';
+import EventHandler from '../EventHandler/Eventhandler';
 
 const MEROSS_URL = 'iot.meross.com';
 const LOGIN_PART = '/v1/Auth/Login'
@@ -30,7 +30,7 @@ const DEV_LIST_PART = '/v1/Device/devList'
 //const DEV_LIST_URL = MEROSS_URL + DEV_LIST_PART;
 export let deviceMap = new Map();
 
-export async function init(eventhandler: Eventhandler, forceIPReload: boolean): Promise<void> {
+export async function init(forceIPReload: boolean): Promise<void> {
   await checkConfigFile();
   await checkDevicesFile();
   let key = getConfigKey("key");
@@ -78,6 +78,8 @@ export async function init(eventhandler: Eventhandler, forceIPReload: boolean): 
     await newDevice.init();
     deviceMap.set(device.ip, newDevice);
   }
+  let eventhandler = new EventHandler("127.0.0.1", 8000, "MerossDeviceHandler");
+  await eventhandler.init();
   console.log("Init finished.");
   process.stdin.resume(); //TODO Remove later
 }
@@ -224,3 +226,5 @@ function createDevice(ip:string, model:string, uuid:string, name:string): Plug|S
       return new Device(ip, model, uuid, name);
   }
 }
+
+init(false);
