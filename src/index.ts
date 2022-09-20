@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import read from 'read';
 import mqtt from 'mqtt';
 import {
-  doRequest,
+  //doRequest,
   generateForm,
   generateBody,
   setConfigKey,
@@ -26,11 +26,11 @@ import EventHandler from '../EventHandler/Eventhandler';
 const MEROSS_URL = 'iot.meross.com';
 const LOGIN_PART = '/v1/Auth/Login'
 const LOGIN_URL = MEROSS_URL + LOGIN_PART;
-const DEV_LIST_PART = '/v1/Device/devList'
+//const DEV_LIST_PART = '/v1/Device/devList'
 //const DEV_LIST_URL = MEROSS_URL + DEV_LIST_PART;
 export let deviceMap = new Map();
 
-export async function init(forceIPReload: boolean): Promise<void> {
+export async function init(useEventhandler=true, forceIPReload: boolean): Promise<void> {
   await checkConfigFile();
   await checkDevicesFile();
   let key = getConfigKey("key");
@@ -65,6 +65,8 @@ export async function init(forceIPReload: boolean): Promise<void> {
     for (let uuid of uuids) {
       let temp = findInObject("uuid", uuid.uuid, ips); //Merge UUID/Model and UUID/IP Collection
       console.log(temp);
+      if (!temp) //TODO properly handle offline devices
+        continue;
       temp.model = uuid.model;
       temp.name = uuid.name;
     }
@@ -78,8 +80,16 @@ export async function init(forceIPReload: boolean): Promise<void> {
     await newDevice.init();
     deviceMap.set(device.ip, newDevice);
   }
-  let eventhandler = new EventHandler("127.0.0.1", 8000, "MerossDeviceHandler");
-  await eventhandler.init();
+
+  if (useEventhandler) {
+    let eventhandler = new EventHandler(/*"127.0.0.1",*/ 8000, "MerossDeviceHandler");
+    await eventhandler.init().then(() => {
+      console.log("Eventhandler initialized")
+    }).catch(() => {
+      console.log("Eventhandler NOT initialized!");
+    });
+  }
+
   console.log("Init finished.");
   process.stdin.resume(); //TODO Remove later
 }
@@ -225,6 +235,4 @@ function createDevice(ip:string, model:string, uuid:string, name:string): Plug|S
     default:
       return new Device(ip, model, uuid, name);
   }
-}
-
-init(false);
+}

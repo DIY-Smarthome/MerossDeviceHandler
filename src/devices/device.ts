@@ -1,7 +1,7 @@
 import * as util from '../util';
 import {
 	getConfigKey,
-	//doRequest
+	doRequest
 } from '../util';
 import winston from 'winston';
 import { genericDeviceData } from '../interfaces/frontendDataDefinitions'
@@ -33,7 +33,7 @@ export default class Device {
 			]
 		})
 		this.logger.info("Connection established");
-		this.logger.info("Device is running as type 'Device'");
+		//this.logger.info("Device is running as type 'Device'");
 	}
 
 	async init(): Promise<void> {
@@ -63,8 +63,8 @@ export default class Device {
 
 	static async getDebugData(ip: string): Promise<any> {
 		let options = util.getDefaultHeader("POST", ip);
-		options.body = util.generateBody("GET", `http://${ip}/config`, "Appliance.System.Debug", {});
-		//return (await doRequest(options)).payload.debug;
+		options.body = JSON.stringify(util.generateBody("GET", `http://${ip}/config`, "Appliance.System.Debug", {}));
+		return (await doRequest(`http://${ip}/config`, options)).payload.debug;
 	}
 
 	async getValue(namespace: string): Promise<any> {
@@ -73,8 +73,8 @@ export default class Device {
 			return;
 		}
 		let options = util.getDefaultHeader("POST", this.ip);
-		options.body = util.generateBody("GET", `http://${this.ip}/config`, namespace, {});
-		//return await doRequest(options);
+		options.body = JSON.stringify(util.generateBody("GET", `http://${this.ip}/config`, namespace, {}));
+		return await doRequest(`http://${this.ip}/config`, options);
 	}
 
 	async setValue(namespace:string, payload:any): Promise<any> {
@@ -83,8 +83,8 @@ export default class Device {
 			return;
 		}
 		let options = util.getDefaultHeader("POST", this.ip);
-		options.body = util.generateBody("SET", `http://${this.ip}/config`, namespace, payload);
-		//await doRequest(options);
+		options.body = JSON.stringify(util.generateBody("SET", `http://${this.ip}/config`, namespace, payload));
+		await doRequest(`http://${this.ip}/config`, options);
 	}
 
 	async getValues(): Promise<genericDeviceData> {

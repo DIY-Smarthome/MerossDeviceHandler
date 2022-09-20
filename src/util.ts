@@ -1,45 +1,16 @@
-import https from 'https';
 import crypto from 'crypto';
 import fs from 'fs';
 import loadJsonFile from 'load-json-file';
 import writeJsonFile from 'write-json-file';
+import fetch from 'node-fetch';
 export var config: any;
 export var devices: any;
 
 const SECRET = '23x17ahWarFH6w29';
 
-export function doRequest(hostname:string, path:string, method:string, headers:any, body:any): any {
-	return new Promise(function (resolve, reject) {
-		const data = JSON.stringify(body)
-		headers['Content-Type'] = 'application/json';
-		headers['Content-Length'] = data.length;
-		const options = {
-			hostname: hostname,
-			port: 443,
-			path: path,
-			method: method,
-			headers: headers
-		}
-
-		const req = https.request(options, res => {
-			console.log(`statusCode: ${res.statusCode}`)
-		
-			res.on('data', d => {
-				process.stdout.write(d)
-				resolve(d);
-			})
-		})
-
-		req.on('error', error => {
-			console.error(error)
-			reject(error);
-		})
-
-		if (method !== "GET")
-			req.write(data)
-		
-		req.end()
-	});
+export async function doRequest(hostname: string, options: object): Promise<any> {
+	let json = await (await fetch(hostname, options)).json();
+	return json;
 }
 
 export function generateForm(data: any): any {
