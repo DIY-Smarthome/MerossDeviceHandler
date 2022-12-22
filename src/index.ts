@@ -22,6 +22,7 @@ import Device from './devices/device';
 import Plug from './devices/Plug';
 import Switch from './devices/Switch';
 import EventHandler from '../EventHandler/Eventhandler';
+import getConfig from '../EventHandler/Utils/configHelper';
 
 const MEROSS_URL = 'iot.meross.com';
 const LOGIN_PART = '/v1/Auth/Login'
@@ -82,7 +83,7 @@ export async function init(useEventhandler=true, forceIPReload: boolean): Promis
   }
 
   if (useEventhandler) {
-    let eventhandler = new EventHandler(/*"127.0.0.1",*/ 8000, "MerossDeviceHandler");
+    let eventhandler = new EventHandler(/*"127.0.0.1",*/ 8000, getConfig(),"MerossDeviceHandler");
     await eventhandler.init().then(() => {
       console.log("Eventhandler initialized")
     }).catch(() => {
